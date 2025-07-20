@@ -4,19 +4,19 @@ tasks:
   add_user:
     desc: Add a new user with sudo privileges and set up SSH
     cmds:
-      - sudo useradd "{{.USER}}"
-      - sudo chsh -s /bin/bash "{{.USER}}"
-      - sudo usermod -aG sudo "{{.USER}}"
-      - sudo mkhomedir_helper "{{.USER}}"
-      - sudo passwd "{{.USER}}"
-      - cp -r ~/.ssh /home/{{.USER}}/.ssh && sudo chown -R {{.USER}}:{{.USER}} /home/{{.USER}}/.ssh
-      - chmod 700 /home/{{.USER}}/.ssh/ &> /dev/null
-      - chmod 600 /home/{{.USER}}/.ssh/authorized_keys &> /dev/null
-      - chmod 600 /home/{{.USER}}/.ssh/config &> /dev/null
-      - chmod 600 /home/{{.USER}}/.ssh/identity &> /dev/null
-      - chmod 600 /home/{{.USER}}/.ssh/id_dsa &> /dev/null
-      - chmod 644 /home/{{.USER}}/.ssh/identity.pub &> /dev/null
-      - chmod 644 /home/{{.USER}}/.ssh/id_dsa.pub &> /dev/null
+      - sudo useradd "marinegor"
+      - sudo chsh -s /bin/bash "marinegor"
+      - sudo usermod -aG sudo "marinegor"
+      - sudo mkhomedir_helper "marinegor"
+      - sudo passwd "marinegor"
+      - cp -r ~/.ssh /home/marinegor/.ssh && sudo chown -R marinegor:marinegor /home/marinegor/.ssh
+      - chmod 700 /home/marinegor/.ssh/ &> /dev/null
+      - chmod 600 /home/marinegor/.ssh/authorized_keys &> /dev/null
+      - chmod 600 /home/marinegor/.ssh/config &> /dev/null
+      - chmod 600 /home/marinegor/.ssh/identity &> /dev/null
+      - chmod 600 /home/marinegor/.ssh/id_dsa &> /dev/null
+      - chmod 644 /home/marinegor/.ssh/identity.pub &> /dev/null
+      - chmod 644 /home/marinegor/.ssh/id_dsa.pub &> /dev/null
     vars:
       USER: '{{.CLI_ARGS}}'
 
