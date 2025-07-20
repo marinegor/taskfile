@@ -1,0 +1,246 @@
+version: '3'
+
+tasks:
+  add_user:
+    desc: Add a new user with sudo privileges and set up SSH
+    cmds:
+      - sudo useradd "{{.USER}}"
+      - sudo chsh -s /bin/bash "{{.USER}}"
+      - sudo usermod -aG sudo "{{.USER}}"
+      - sudo mkhomedir_helper "{{.USER}}"
+      - sudo passwd "{{.USER}}"
+      - cp -r ~/.ssh /home/{{.USER}}/.ssh && sudo chown -R {{.USER}}:{{.USER}} /home/{{.USER}}/.ssh
+      - chmod 700 /home/{{.USER}}/.ssh/ &> /dev/null
+      - chmod 600 /home/{{.USER}}/.ssh/authorized_keys &> /dev/null
+      - chmod 600 /home/{{.USER}}/.ssh/config &> /dev/null
+      - chmod 600 /home/{{.USER}}/.ssh/identity &> /dev/null
+      - chmod 600 /home/{{.USER}}/.ssh/id_dsa &> /dev/null
+      - chmod 644 /home/{{.USER}}/.ssh/identity.pub &> /dev/null
+      - chmod 644 /home/{{.USER}}/.ssh/id_dsa.pub &> /dev/null
+    vars:
+      USER: '{{.CLI_ARGS}}'
+
+  update_packages:
+    desc: Update system packages and install essential development tools
+    cmds:
+      - sudo apt-get update -y && sudo apt-get upgrade -y
+      - sudo apt-get install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev wget curl gh
+
+  install_cargo:
+    desc: Install Rust and Cargo
+    cmds:
+      - curl https://sh.rustup.rs -sSf | sh
+
+  install_fzf:
+    desc: Install fuzzy finder (fzf)
+    cmds:
+      - git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+      - ~/.fzf/install
+
+  install_cargo_utils:
+    desc: Install Rust-based utilities
+    cmds:
+      - bash -c "source ~/.bashrc && cargo install fd-find"
+      - bash -c "source ~/.bashrc && cargo install --locked bat"
+      - bash -c "source ~/.bashrc && cargo install bottom"
+      - bash -c "source ~/.bashrc && cargo install tre-command"
+
+  install_micromamba:
+    desc: Install Micromamba package manager
+    cmds:
+      - '{{.SHELL}} <(curl -L micro.mamba.pm/install.sh)'
+    vars:
+      SHELL: '{{env "SHELL"}}'
+
+  install_uv:
+    desc: Install uv package manager
+    cmds:
+      - curl -LsSf https://astral.sh/uv/install.sh | sh
+
+  install_docker:
+    desc: Install Docker and setup for current user
+    cmds:
+      - sudo apt-get update -y && sudo apt-get install -y ca-certificates curl
+      - sudo install -m 0755 -d /etc/apt/keyrings
+      - sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+      - sudo chmod a+r /etc/apt/keyrings/docker.asc
+      - |
+        echo \
+        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+        $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+        sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+      - sudo apt-get update -y && sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+      - sudo groupadd docker || true
+      - sudo usermod -aG docker $USER
+      - newgrp docker
+
+  install_aws:
+    desc: Install AWS CLI
+    cmds:
+      - sudo snap install aws-cli --classic
+
+  install_kubectl:
+    desc: Install kubectl for Kubernetes management
+    cmds:
+      - sudo apt-get update
+      - sudo apt-get install -y apt-transport-https ca-certificates curl gnupg
+      - sudo mkdir -p -m 755 /etc/apt/keyrings &> /dev/null
+      - curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+      - sudo chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+      - echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+      - sudo chmod 644 /etc/apt/sources.list.d/kubernetes.list
+      - sudo apt-get update
+      - sudo apt-get install -y kubectl
+
+  install_hadolint:
+    desc: Install Hadolint for Dockerfile linting
+    cmds:
+      - docker pull hadolint/hadolint:latest-debian
+      - mkdir -p ~/.local/bin
+      - |
+        cat > ~/.local/bin/hadolint << 'EOF'
+        #!/bin/bash
+        dockerfile="$1"
+        shift
+        docker run --rm -i hadolint/hadolint hadolint "$@" - < "$dockerfile"
+        EOF
+      - chmod u+x ~/.local/bin/hadolint
+
+  install_pyenv:
+    desc: Install Python version manager
+    cmds:
+      - curl https://pyenv.run | bash
+
+  install_helm:
+    desc: Install Helm and the secrets plugin
+    cmds:
+      - sudo snap install helm --classic
+      - helm plugin install https://github.com/jkroepke/helm-secrets
+
+  install_tilt:
+    desc: Install Tilt for Kubernetes development
+    cmds:
+      - curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
+
+  install_sops:
+    desc: Install SOPS for secrets management
+    cmds:
+      - curl -LO https://github.com/getsops/sops/releases/download/v3.9.0/sops-v3.9.0.linux.amd64
+      - sudo mv sops-v3.9.0.linux.amd64 /usr/local/bin/sops
+      - sudo chmod +x /usr/local/bin/sops
+
+  install_node:
+    desc: Install Node.js and npm
+    cmds:
+      - sudo apt-get update -y && sudo apt-get install -y nodejs npm
+
+  install_typescript:
+    desc: Install TypeScript globally
+    cmds:
+      - sudo npm install -g typescript
+
+  install_bun:
+    desc: Install Bun runtime and package manager
+    cmds:
+      - curl -fsSL https://bun.sh/install | bash
+
+  install_cron_ntfy:
+    desc: Install cron job to send notifications
+    cmds:
+      - |
+        ENDPOINT="ntfy.sh/marinegor_dev_platform"
+        TEMP_CRON=$(mktemp)
+        crontab -l > "$TEMP_CRON" 2>/dev/null
+        echo "0 18 * * * curl -d 'Switch me off!' $ENDPOINT" >> "$TEMP_CRON"
+        if crontab "$TEMP_CRON"; then
+          echo "Cron job added successfully!"
+        else
+          echo "Failed to add cron job. Please check your permissions and try again."
+        fi
+        rm "$TEMP_CRON"
+
+  install_hmmer:
+    desc: Install HMMER package
+    cmds:
+      - sudo apt install -y hmmer
+
+  install_s3fs:
+    desc: Install S3FS for mounting S3 buckets
+    cmds:
+      - sudo apt update && sudo apt upgrade -y && sudo apt install -y automake autotools-dev fuse g++ git libcurl4-gnutls-dev libfuse-dev libssl-dev libxml2-dev make pkg-config
+
+  add_scaleway_creds:
+    desc: Add Scaleway credentials to AWS config
+    cmds:
+      - mkdir -p ~/.aws
+      - |
+        cat >> ~/.aws/credentials << 'EOL'
+        # -------------
+        [default]
+        aws_access_key_id = SCWDP3TVXAP1E7JV8B1R
+        aws_secret_access_key = be70182e-df98-419a-b6ee-57bbcc3819fa
+        endpoint_url = https://aigx-oas-parquet.s3.nl-ams.scw.cloud
+        # -------------
+        EOL
+
+  update_bashrc:
+    desc: Update bashrc with AWS and MLflow configuration
+    cmds:
+      - |
+        cat >> ~/.bashrc << 'EOL'
+        # aws and mlflow
+        export SCW_ACCESS_KEY=SCWCVJ68J8GSDQ7XF6N9
+        export SCW_SECRET_KEY=ffeff469-4e2e-4363-8b9c-703b2878b7c6
+        export SCW_DEFAULT_ORGANIZATION_ID=f0eb8304-8d64-4a1f-877b-ce47972f0418
+        export SCW_DEFAULT_PROJECT_ID=b9aee39a-965f-4612-acb4-22d69455193e
+        export MLFLOW_TRACKING_USERNAME='marinegor'
+        export MLFLOW_TRACKING_PASSWORD='vw2ybe*%t3c7D9'
+        export MLFLOW_TRACKING_URI='http://localhost:8000'
+        if pgrep -f "ssh -fN mlflow" > /dev/null; then
+        echo "Process ssh mlflow is running."
+        else
+        echo "Process ssh mlflow is not running."
+        ssh -fN mlflow
+        fi
+        EOL
+
+  setup_root:
+    desc: Run tasks as root user
+    cmds:
+      - task: add_user
+        vars: { USER: marinegor }
+      - task: update_packages
+
+  setup_marinegor:
+    desc: Run tasks as marinegor user
+    cmds:
+      - task: install_docker
+      - task: install_cargo
+      - task: install_cargo_utils
+      - task: install_fzf
+      - task: install_micromamba
+      - task: install_uv
+      # - task: install_aws
+      # - task: add_scaleway_creds
+      # - task: install_hmmer
+      # - task: install_kubectl
+      # - task: install_pyenv
+      # - task: install_hadolint
+      # - task: install_helm
+      # - task: install_tilt
+      # - task: install_sops
+      - task: install_node
+      - task: install_typescript
+      - task: install_bun
+
+  default:
+    desc: Detect user and run appropriate setup
+    cmds:
+      - |
+        if [[ $USER == "root" ]]; then
+          task: setup_root
+        elif [[ $USER == "marinegor" ]]; then
+          task: setup_marinegor
+        else
+          echo "No specific setup for user $USER"
+        fi
